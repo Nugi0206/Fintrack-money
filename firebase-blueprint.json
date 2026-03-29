@@ -1,0 +1,66 @@
+{
+  "entities": {
+    "Transaction": {
+      "title": "Transaction",
+      "description": "A financial transaction (income or expense).",
+      "type": "object",
+      "properties": {
+        "amount": { "type": "number", "description": "The amount of the transaction." },
+        "type": { "type": "string", "enum": ["expense", "income"], "description": "The type of transaction." },
+        "category": { "type": "string", "description": "The category name." },
+        "wallet": { "type": "string", "description": "The wallet name used." },
+        "note": { "type": "string", "description": "Optional note for the transaction." },
+        "date": { "type": "string", "format": "date", "description": "The date of the transaction (YYYY-MM-DD)." },
+        "timestamp": { "type": "number", "description": "Unix timestamp of the transaction." }
+      },
+      "required": ["amount", "type", "category", "wallet", "date", "timestamp"]
+    },
+    "Wallet": {
+      "title": "Wallet",
+      "description": "A financial wallet or account.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "The name of the wallet." },
+        "balance": { "type": "number", "description": "The initial or current balance." }
+      },
+      "required": ["name"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "A transaction category.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "The name of the category." }
+      },
+      "required": ["name"]
+    },
+    "Profile": {
+      "title": "Profile",
+      "description": "User profile settings.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "The user's display name." },
+        "photo": { "type": "string", "description": "The user's profile photo URL." }
+      },
+      "required": ["name"]
+    }
+  },
+  "firestore": {
+    "/artifacts/{appId}/users/{userId}/transactions": {
+      "schema": "Transaction",
+      "description": "User's financial transactions."
+    },
+    "/artifacts/{appId}/users/{userId}/wallets": {
+      "schema": "Wallet",
+      "description": "User's wallets/accounts."
+    },
+    "/artifacts/{appId}/users/{userId}/categories": {
+      "schema": "Category",
+      "description": "User's transaction categories."
+    },
+    "/artifacts/{appId}/users/{userId}/settings/profile": {
+      "schema": "Profile",
+      "description": "User's profile settings."
+    }
+  }
+}

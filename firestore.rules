@@ -1,0 +1,140 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: /artifacts/{appId}/users/{userId}/transactions
+    // Document ID: auto-generated
+    // Fields:
+    //   - amount: number (required, > 0)
+    //   - type: string (required, 'expense' or 'income')
+    //   - category: string (required, < 50 chars)
+    //   - wallet: string (required, < 50 chars)
+    //   - note: string (optional, < 200 chars)
+    //   - date: string (required, ISO 8601 format)
+    //   - timestamp: number (required)
+    //
+    // Collection: /artifacts/{appId}/users/{userId}/wallets
+    // Document ID: auto-generated
+    // Fields:
+    //   - name: string (required, < 50 chars)
+    //   - balance: number (required)
+    //
+    // Collection: /artifacts/{appId}/users/{userId}/categories
+    // Document ID: auto-generated
+    // Fields:
+    //   - name: string (required, < 50 chars)
+    //
+    // Collection: /artifacts/{appId}/users/{userId}/settings/profile
+    // Document ID: 'profile'
+    // Fields:
+    //   - name: string (required, < 50 chars)
+    //   - photo: string (optional, URL)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidString(field, min, max) {
+      return request.resource.data[field] is string && 
+             request.resource.data[field].size() >= min && 
+             request.resource.data[field].size() <= max;
+    }
+
+    function isValidOptionalString(field, min, max) {
+      return !(field in request.resource.data) || 
+             (request.resource.data[field] is string && 
+              request.resource.data[field].size() >= min && 
+              request.resource.data[field].size() <= max);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    function isValidTransaction() {
+      return hasRequiredFields(['amount', 'type', 'category', 'wallet', 'date', 'timestamp']) &&
+             hasOnlyAllowedFields(['amount', 'type', 'category', 'wallet', 'date', 'timestamp', 'note']) &&
+             request.resource.data.amount is number && request.resource.data.amount > 0 &&
+             request.resource.data.type in ['expense', 'income'] &&
+             isValidString('category', 1, 50) &&
+             isValidString('wallet', 1, 50) &&
+             isValidString('date', 10, 30) &&
+             request.resource.data.timestamp is number &&
+             isValidOptionalString('note', 0, 200);
+    }
+
+    function isValidWallet() {
+      return hasRequiredFields(['name', 'balance']) &&
+             hasOnlyAllowedFields(['name', 'balance']) &&
+             isValidString('name', 1, 50) &&
+             request.resource.data.balance is number;
+    }
+
+    function isValidCategory() {
+      return hasRequiredFields(['name']) &&
+             hasOnlyAllowedFields(['name']) &&
+             isValidString('name', 1, 50);
+    }
+
+    function isValidProfile() {
+      return hasRequiredFields(['name']) &&
+             hasOnlyAllowedFields(['name', 'photo']) &&
+             isValidString('name', 1, 50) &&
+             isValidOptionalString('photo', 0, 500);
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+    match /artifacts/{appId}/users/{userId} {
+      
+      match /transactions/{transactionId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidTransaction();
+        allow update: if isOwner(userId) && isValidTransaction();
+        allow delete: if isOwner(userId);
+      }
+
+      match /wallets/{walletId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidWallet();
+        allow update: if isOwner(userId) && isValidWallet();
+        allow delete: if isOwner(userId);
+      }
+
+      match /categories/{categoryId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidCategory();
+        allow update: if isOwner(userId) && isValidCategory();
+        allow delete: if isOwner(userId);
+      }
+
+      match /settings/profile {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidProfile();
+        allow update: if isOwner(userId) && isValidProfile();
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}
