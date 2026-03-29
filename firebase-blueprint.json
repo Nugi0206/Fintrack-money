@@ -40,12 +40,44 @@
       "type": "object",
       "properties": {
         "name": { "type": "string", "description": "The user's display name." },
-        "photo": { "type": "string", "description": "The user's profile photo URL." }
+        "photo": { "type": "string", "description": "The user's profile photo URL." },
+        "language": { "type": "string", "enum": ["en", "id", "zh", "ja"], "description": "User's preferred language." },
+        "isPremium": { "type": "boolean", "description": "Whether the user has a premium license." },
+        "licenseCode": { "type": "string", "description": "The user's unique license code." }
       },
       "required": ["name"]
+    },
+    "Budget": {
+      "title": "Budget",
+      "description": "User's budget and savings goals.",
+      "type": "object",
+      "properties": {
+        "monthlyIncome": { "type": "number", "description": "The user's monthly income." },
+        "savingsGoal": { "type": "number", "description": "The user's savings goal percentage." }
+      },
+      "required": ["monthlyIncome", "savingsGoal"]
+    },
+    "LicenseRequest": {
+      "title": "LicenseRequest",
+      "description": "A request for a premium license after payment.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The UID of the user requesting the license." },
+        "userEmail": { "type": "string", "description": "The email of the user." },
+        "userName": { "type": "string", "description": "The name of the user." },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"], "description": "The status of the request." },
+        "timestamp": { "type": "number", "description": "When the request was made." },
+        "paymentMethod": { "type": "string", "description": "DANA or BCA." },
+        "paymentProof": { "type": "string", "description": "Base64 image of payment proof." }
+      },
+      "required": ["userId", "status", "timestamp", "paymentProof"]
     }
   },
   "firestore": {
+    "/artifacts/{appId}/license_requests_v3/{requestId}": {
+      "schema": "LicenseRequest",
+      "description": "Global license requests for admin approval."
+    },
     "/artifacts/{appId}/users/{userId}/transactions": {
       "schema": "Transaction",
       "description": "User's financial transactions."
@@ -61,6 +93,10 @@
     "/artifacts/{appId}/users/{userId}/settings/profile": {
       "schema": "Profile",
       "description": "User's profile settings."
+    },
+    "/artifacts/{appId}/users/{userId}/settings/budget": {
+      "schema": "Budget",
+      "description": "User's budget settings."
     }
   }
 }

@@ -33,6 +33,26 @@ service cloud.firestore {
     // Fields:
     //   - name: string (required, < 50 chars)
     //   - photo: string (optional, URL)
+    //   - language: string (optional, 'en', 'id', 'zh', 'ja')
+    //   - isPremium: boolean (optional)
+    //   - licenseCode: string (optional, < 100 chars)
+    //
+    // Collection: /artifacts/{appId}/users/{userId}/settings/budget
+    // Document ID: 'budget'
+    // Fields:
+    //   - monthlyIncome: number (required)
+    //   - savingsGoal: number (required)
+    //
+    // Collection: /artifacts/{appId}/license_requests_v3/{requestId}
+    // Document ID: auto-generated
+    // Fields:
+    //   - userId: string (required)
+    //   - userEmail: string (optional)
+    //   - userName: string (optional)
+    //   - status: string (required, 'pending', 'approved', 'rejected')
+    //   - timestamp: number (required)
+    //   - paymentMethod: string (optional)
+    //   - paymentProof: string (required, base64 image)
     //
     // ===============================================================
 
@@ -45,6 +65,11 @@ service cloud.firestore {
 
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+             (request.auth.token.email == "muhamadnugiandri@gmail.com" && request.auth.token.email_verified == true);
     }
 
     function hasRequiredFields(fields) {
@@ -98,14 +123,41 @@ service cloud.firestore {
 
     function isValidProfile() {
       return hasRequiredFields(['name']) &&
-             hasOnlyAllowedFields(['name', 'photo']) &&
+             hasOnlyAllowedFields(['name', 'photo', 'language', 'isPremium', 'licenseCode']) &&
              isValidString('name', 1, 50) &&
-             isValidOptionalString('photo', 0, 500);
+             isValidOptionalString('photo', 0, 500) &&
+             (!( 'language' in request.resource.data) || request.resource.data.language in ['en', 'id', 'zh', 'ja']) &&
+             (!( 'isPremium' in request.resource.data) || request.resource.data.isPremium is bool) &&
+             isValidOptionalString('licenseCode', 0, 100);
+    }
+
+    function isValidLicenseRequest() {
+      return hasRequiredFields(['userId', 'status', 'timestamp', 'paymentProof']) &&
+             hasOnlyAllowedFields(['userId', 'userEmail', 'userName', 'status', 'timestamp', 'paymentMethod', 'paymentProof']) &&
+             request.resource.data.userId is string &&
+             request.resource.data.status in ['pending', 'approved', 'rejected'] &&
+             request.resource.data.timestamp is number &&
+             request.resource.data.paymentProof is string &&
+             request.resource.data.paymentProof.size() < 1000000; // Limit size
+    }
+
+    function isValidBudget() {
+      return hasRequiredFields(['monthlyIncome', 'savingsGoal']) &&
+             hasOnlyAllowedFields(['monthlyIncome', 'savingsGoal']) &&
+             request.resource.data.monthlyIncome is number &&
+             request.resource.data.savingsGoal is number;
     }
 
     // ===============================================================
     // Rules
     // ===============================================================
+    match /artifacts/{appId}/license_requests_v3/{requestId} {
+      allow read: if isAdmin() || (isAuthenticated() && request.auth.uid == resource.data.userId);
+      allow create: if isAuthenticated() && isValidLicenseRequest() && request.resource.data.userId == request.auth.uid && request.resource.data.status == 'pending';
+      allow update: if isAdmin() && isValidLicenseRequest();
+      allow delete: if isAdmin();
+    }
+
     match /artifacts/{appId}/users/{userId} {
       
       match /transactions/{transactionId} {
@@ -130,9 +182,20 @@ service cloud.firestore {
       }
 
       match /settings/profile {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && isValidProfile() && 
+                      (!('isPremium' in request.resource.data) || request.resource.data.isPremium == false);
+        allow update: if (isOwner(userId) && isValidProfile() && 
+                         (!('isPremium' in request.resource.data) || request.resource.data.isPremium == resource.data.isPremium) &&
+                         (!('licenseCode' in request.resource.data) || request.resource.data.licenseCode == resource.data.licenseCode)) ||
+                      (isAdmin() && isValidProfile());
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+
+      match /settings/budget {
         allow read: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidProfile();
-        allow update: if isOwner(userId) && isValidProfile();
+        allow create: if isOwner(userId) && isValidBudget();
+        allow update: if isOwner(userId) && isValidBudget();
         allow delete: if isOwner(userId);
       }
     }
