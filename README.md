@@ -26,8 +26,8 @@ To deploy this project to GitHub and host it (e.g., on Vercel, Netlify, or GitHu
    - Go to the [Firebase Console](https://console.firebase.google.com/).
    - Create a new project.
    - Add a Web App to your project.
-   - Enable **Anonymous Authentication** (or Google Auth if you prefer to modify the code).
-   - Create a **Cloud Firestore** database in test mode (or configure security rules).
+   - Enable **Google Authentication** in the Authentication > Sign-in method tab.
+   - Create a **Cloud Firestore** database and configure security rules.
 
 3. **Configure Environment Variables:**
    - Create a `.env` file in the root directory.
