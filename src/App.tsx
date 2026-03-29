@@ -33,11 +33,7 @@ import {
   TrendingDown,
   ChevronDown,
   AlertCircle,
-  Chrome,
-  ShieldCheck,
-  Zap,
-  Globe,
-  ArrowRight
+  Chrome
 } from 'lucide-react';
 import { auth, db, APP_ID } from './lib/firebase';
 
@@ -420,91 +416,26 @@ function ExpenseTracker() {
     }, initialBalance);
   };
 
-  // --- Landing Page Component ---
-  const LandingPage = () => (
-    <div className="min-h-screen bg-[#0d0e14] text-white selection:bg-blue-500/30 overflow-x-hidden">
-      {/* Navigation */}
-      <nav className="flex justify-between items-center px-6 py-8 max-w-6xl mx-auto">
-        <div className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <Wallet size={20} className="text-white" />
-          </div>
-          <span className="text-xl font-black tracking-tighter">FinTrack.</span>
-        </div>
-        <button 
-          onClick={handleLogin}
-          className="bg-white/5 hover:bg-white/10 text-white px-5 py-2.5 rounded-full text-xs font-black uppercase tracking-widest border border-white/10 transition-all cursor-pointer"
-        >
-          Login
-        </button>
-      </nav>
-
-      {/* Hero Section */}
-      <section className="px-6 pt-12 pb-24 max-w-6xl mx-auto text-center">
-        <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 px-4 py-2 rounded-full mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <Zap size={14} className="text-blue-400" />
-          <span className="text-[10px] font-black uppercase tracking-widest text-blue-400">New: Cloud Sync 2.0</span>
-        </div>
-        <h1 className="text-5xl sm:text-7xl font-black tracking-tighter leading-[0.9] mb-8 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-          TAKE CONTROL OF <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">YOUR MONEY.</span>
-        </h1>
-        <p className="text-gray-500 text-lg mb-12 max-w-xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-200">
-          The all-in-one personal finance tracker that lives in the cloud. Manage wallets, track expenses, and grow your wealth.
-        </p>
-        
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-in fade-in slide-in-from-bottom-16 duration-1000 delay-300">
-          <button 
-            onClick={handleLogin}
-            disabled={authLoading}
-            className="w-full sm:w-auto bg-white text-black font-black px-10 py-5 rounded-[2rem] flex items-center justify-center gap-3 active:scale-95 transition-all shadow-2xl shadow-white/10 cursor-pointer text-sm uppercase tracking-widest"
-          >
-            {authLoading ? <RefreshCw size={20} className="animate-spin" /> : <Chrome size={20} />}
-            Start Tracking Now
-          </button>
-          <button className="w-full sm:w-auto bg-transparent text-white/50 hover:text-white font-black px-10 py-5 rounded-[2rem] flex items-center justify-center gap-2 transition-all cursor-pointer text-sm uppercase tracking-widest">
-            View Demo <ArrowRight size={18} />
-          </button>
-        </div>
-      </section>
-
-      {/* Features Grid */}
-      <section className="px-6 py-24 bg-[#14151f] border-y border-white/5">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="p-8 bg-[#1a1b23] rounded-[2.5rem] border border-white/5 hover:border-blue-500/30 transition-all group">
-            <div className="w-14 h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              <ShieldCheck size={28} className="text-blue-400" />
-            </div>
-            <h3 className="text-xl font-bold mb-3">Secure Cloud</h3>
-            <p className="text-gray-500 text-sm leading-relaxed">Your data is encrypted and synced across all your devices using Firebase technology.</p>
-          </div>
-          <div className="p-8 bg-[#1a1b23] rounded-[2.5rem] border border-white/5 hover:border-indigo-500/30 transition-all group">
-            <div className="w-14 h-14 bg-indigo-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              <BarChart3 size={28} className="text-indigo-400" />
-            </div>
-            <h3 className="text-xl font-bold mb-3">Smart Analytics</h3>
-            <p className="text-gray-500 text-sm leading-relaxed">Visualize your spending patterns with beautiful charts and monthly reports.</p>
-          </div>
-          <div className="p-8 bg-[#1a1b23] rounded-[2.5rem] border border-white/5 hover:border-purple-500/30 transition-all group">
-            <div className="w-14 h-14 bg-purple-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              <Globe size={28} className="text-purple-400" />
-            </div>
-            <h3 className="text-xl font-bold mb-3">Multi-Wallet</h3>
-            <p className="text-gray-500 text-sm leading-relaxed">Manage Cash, Bank, and E-Wallets in one place with real-time balance tracking.</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="px-6 py-12 text-center text-gray-600 text-[10px] font-black uppercase tracking-[0.3em]">
-        &copy; 2026 FinTrack. Built with AI Studio.
-      </footer>
-    </div>
-  );
-
   // --- Login Screen ---
   if (!user) {
-    return <LandingPage />;
+    return (
+      <div className="min-h-screen bg-[#0d0e14] flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-24 h-24 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-[2.5rem] flex items-center justify-center mb-8 shadow-2xl shadow-blue-500/20">
+          <Wallet size={48} className="text-white" />
+        </div>
+        <h1 className="text-3xl font-extrabold text-white mb-2 tracking-tight">FinTrack.</h1>
+        <p className="text-gray-500 mb-12 max-w-[250px]">Manage your finances easily and securely in the cloud.</p>
+        
+        <button 
+          onClick={handleLogin}
+          disabled={authLoading}
+          className="w-full max-w-xs bg-white text-black font-bold py-4 rounded-3xl flex items-center justify-center gap-3 active:scale-95 transition-all shadow-xl disabled:opacity-50 cursor-pointer"
+        >
+          {authLoading ? <RefreshCw size={20} className="animate-spin" /> : <Chrome size={20} />}
+          Sign in with Google
+        </button>
+      </div>
+    );
   }
 
   // --- Main Views ---
