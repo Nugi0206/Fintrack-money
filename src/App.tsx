@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, Component, ErrorInfo, ReactNode } from 'react';
+import { GoogleGenAI, Type } from "@google/genai";
 import { 
   collection, 
   doc, 
@@ -10,6 +11,8 @@ import {
   getDocFromServer,
   query,
   where,
+  orderBy,
+  limit,
 } from 'firebase/firestore';
 import { 
   onAuthStateChanged, 
@@ -49,7 +52,17 @@ import {
   ArrowRight,
   Copy,
   Check,
-  Upload
+  Upload,
+  Bell,
+  Lightbulb,
+  Scan,
+  Target,
+  Activity,
+  Info,
+  CheckCircle2,
+  PieChart,
+  Calendar,
+  Zap
 } from 'lucide-react';
 import { auth, db, APP_ID } from './lib/firebase';
 
@@ -166,6 +179,59 @@ const TRANSLATIONS: any = {
     proofRequired: "Please upload payment proof",
     alreadyRequested: "You have already submitted a request. Please wait for approval.",
     viewProof: "View Proof",
+    dailySnapshot: "Daily Snapshot",
+    financialScore: "Financial Score",
+    scanReceipt: "Scan Receipt",
+    aiPowered: "AI Powered",
+    savingGoals: "Saving Goals",
+    noGoals: "No goals set yet.",
+    viewAll: "View All",
+    aiInsights: "AI Insights",
+    analyzingSpending: "Analyzing your spending patterns...",
+    generateNow: "Generate Now",
+    dailySummary: "Daily Summary",
+    todaySpending: "Today's Spending",
+    monthlyBudget: "Monthly Budget",
+    financialTip: "Financial Tip",
+    todaysHighlights: "Today's Highlights",
+    spentToday: "Spent Today",
+    dailyBudgetLeft: "Daily Budget Left",
+    filterDate: "Filter Date",
+    allDates: "All Dates",
+    unread: "Unread",
+    read: "Read",
+    budget: "Budget",
+    subscription: "Subscription",
+    reminders: "Reminders",
+    noReminders: "No notifications yet",
+    notifications: "Notifications",
+    allCaughtUp: "All caught up!",
+    topCategory: "Top Category",
+    items: "items",
+    excellent: "Excellent",
+    good: "Good",
+    fair: "Fair",
+    poor: "Poor",
+    custom: "Custom",
+    startDate: "Start Date",
+    endDate: "End Date",
+    pendingRequests: "Pending Requests",
+    approvedRequests: "Approved Requests",
+    rejectedRequests: "Rejected Requests",
+    financialTipQuote: "Try reducing impulse purchases to stay within budget.",
+    dailyReminder: "You haven't recorded any spending today. Keep your finances updated.",
+    budgetWarning: "You have used 80% of your monthly budget",
+    categoryBudgetWarning: "Your {category} spending is at 80% of budget.",
+    receiptFrom: "Receipt from",
+    goalPlaceholder: "Goal Name (e.g. New Laptop)",
+    targetAmountPlaceholder: "Target Amount",
+    createGoal: "Create Goal",
+    yourGoals: "Your Goals",
+    food: "Food",
+    transport: "Transport",
+    shopping: "Shopping",
+    others: "Others",
+    viewProfile: "View Profile",
   },
   id: {
     appName: "FinTrack.",
@@ -278,6 +344,63 @@ const TRANSLATIONS: any = {
     proofRequired: "Harap unggah bukti pembayaran",
     alreadyRequested: "Anda sudah mengajukan permintaan. Harap tunggu persetujuan.",
     viewProof: "Lihat Bukti",
+    smartReminder: "Pengingat Pintar",
+    dailyExpenseReminder: "Pengingat Pengeluaran Harian",
+    budgetAlert: "Peringatan Anggaran",
+    subscriptionReminder: "Pengingat Langganan",
+    financialScore: "Skor Keuangan",
+    scanReceipt: "Scan Struk",
+    savingGoals: "Target Keinginan",
+    aiInsights: "Wawasan AI",
+    dailySummary: "Ringkasan Harian",
+    todaySpending: "Pengeluaran Hari Ini",
+    monthlyBudget: "Anggaran Bulanan",
+    financialTip: "Tips Keuangan",
+    generateNow: "Buat Sekarang",
+    noGoals: "Belum ada target.",
+    viewAll: "Lihat Semua",
+    filterDate: "Filter Tanggal",
+    allDates: "Semua Tanggal",
+    dailySnapshot: "Cuplikan Harian",
+    aiPowered: "Didukung AI",
+    analyzingSpending: "Menganalisis pola pengeluaran Anda...",
+    todaysHighlights: "Sorotan Hari Ini",
+    spentToday: "Terpakai Hari Ini",
+    dailyBudgetLeft: "Sisa Anggaran Harian",
+    unread: "Belum Dibaca",
+    read: "Sudah Dibaca",
+    budget: "Anggaran",
+    subscription: "Langganan",
+    reminders: "Pengingat",
+    noReminders: "Belum ada notifikasi",
+    notifications: "Notifikasi",
+    allCaughtUp: "Semua sudah dibaca!",
+    topCategory: "Kategori Teratas",
+    items: "item",
+    excellent: "Sangat Baik",
+    good: "Baik",
+    fair: "Cukup",
+    poor: "Kurang",
+    custom: "Kustom",
+    startDate: "Tanggal Mulai",
+    endDate: "Tanggal Selesai",
+    pendingRequests: "Permintaan Tertunda",
+    approvedRequests: "Permintaan Disetujui",
+    rejectedRequests: "Permintaan Ditolak",
+    financialTipQuote: "Cobalah kurangi pembelian impulsif agar tetap sesuai anggaran.",
+    dailyReminder: "Kamu belum mencatat pengeluaran hari ini.",
+    budgetWarning: "Pengeluaran kamu sudah 80% dari budget.",
+    categoryBudgetWarning: "Pengeluaran {category} kamu sudah 80% dari budget.",
+    receiptFrom: "Struk dari",
+    goalPlaceholder: "Nama Target (misal: Laptop Baru)",
+    targetAmountPlaceholder: "Jumlah Target",
+    createGoal: "Buat Target",
+    yourGoals: "Target Anda",
+    food: "Makan",
+    transport: "Transportasi",
+    shopping: "Belanja",
+    others: "Lainnya",
+    viewProfile: "Lihat Profil",
   },
   zh: {
     appName: "FinTrack.",
@@ -612,13 +735,52 @@ interface Category {
   name: string;
 }
 
+interface Reminder {
+  id: string;
+  type: 'daily' | 'budget' | 'subscription';
+  message: string;
+  status: 'unread' | 'read';
+  createdAt: number;
+}
+
+interface Insight {
+  id: string;
+  title: string;
+  description: string;
+  createdAt: number;
+}
+
+interface Receipt {
+  id: string;
+  imageUrl: string;
+  detectedTotal?: number;
+  detectedStore?: string;
+  transactionId?: string;
+  createdAt: number;
+}
+
+interface FinancialScore {
+  id: string;
+  score: number;
+  calculatedAt: number;
+}
+
+interface SavingGoal {
+  id: string;
+  goalName: string;
+  targetAmount: number;
+  currentSaved: number;
+  deadline?: string;
+  createdAt: number;
+}
+
 function ExpenseTracker() {
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [authMode, setAuthMode] = useState<'selection' | 'email-login' | 'email-signup'>('selection');
   const [emailForm, setEmailForm] = useState({ email: '', password: '' });
   const [authError, setAuthError] = useState('');
-  const [activeTab, setActiveTab] = useState<'home' | 'stats' | 'wallet' | 'me' | 'admin'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'stats' | 'wallet' | 'me' | 'admin' | 'summary'>('home');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [wallets, setWallets] = useState<WalletType[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -637,6 +799,23 @@ function ExpenseTracker() {
   const [licenseRequests, setLicenseRequests] = useState<any[]>([]);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [editingWallet, setEditingWallet] = useState<WalletType | null>(null);
+  
+  const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [insights, setInsights] = useState<Insight[]>([]);
+  const [receipts, setReceipts] = useState<Receipt[]>([]);
+  const [financialScores, setFinancialScores] = useState<FinancialScore[]>([]);
+  const [savingGoals, setSavingGoals] = useState<SavingGoal[]>([]);
+  const [isScanning, setIsScanning] = useState(false);
+  const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
+  const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+  const [adminDateFilter, setAdminDateFilter] = useState('');
+  const [adminEndDateFilter, setAdminEndDateFilter] = useState('');
+  const [adminStatusFilter, setAdminStatusFilter] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
+  const [statsStartDate, setStatsStartDate] = useState('');
+  const [statsEndDate, setStatsEndDate] = useState('');
+  const [newGoalData, setNewGoalData] = useState({ goalName: '', targetAmount: '', deadline: '' });
+  const [contributionData, setContributionData] = useState({ goalId: '', amount: '' });
+  const [isContributionModalOpen, setIsContributionModalOpen] = useState(false);
   
   const [formData, setFormData] = useState({
     amount: '',
@@ -796,6 +975,32 @@ function ExpenseTracker() {
       handleFirestoreError(err, OperationType.GET, `artifacts/${APP_ID}/license_requests_v3`);
     });
 
+    // Engagement features listeners
+    const remindersCol = collection(db, `artifacts/${APP_ID}/users/${user.uid}/reminders`);
+    const unsubReminders = onSnapshot(query(remindersCol, orderBy('createdAt', 'desc')), (snap) => {
+      setReminders(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Reminder)));
+    }, (error) => handleFirestoreError(error, OperationType.GET, `artifacts/${APP_ID}/users/${user.uid}/reminders`));
+
+    const insightsCol = collection(db, `artifacts/${APP_ID}/users/${user.uid}/insights`);
+    const unsubInsights = onSnapshot(query(insightsCol, orderBy('createdAt', 'desc')), (snap) => {
+      setInsights(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Insight)));
+    }, (error) => handleFirestoreError(error, OperationType.GET, `artifacts/${APP_ID}/users/${user.uid}/insights`));
+
+    const receiptsCol = collection(db, `artifacts/${APP_ID}/users/${user.uid}/receipts`);
+    const unsubReceipts = onSnapshot(query(receiptsCol, orderBy('createdAt', 'desc')), (snap) => {
+      setReceipts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Receipt)));
+    }, (error) => handleFirestoreError(error, OperationType.GET, `artifacts/${APP_ID}/users/${user.uid}/receipts`));
+
+    const scoresCol = collection(db, `artifacts/${APP_ID}/users/${user.uid}/financial_scores`);
+    const unsubScores = onSnapshot(query(scoresCol, orderBy('calculatedAt', 'desc'), limit(1)), (snap) => {
+      setFinancialScores(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as FinancialScore)));
+    }, (error) => handleFirestoreError(error, OperationType.GET, `artifacts/${APP_ID}/users/${user.uid}/financial_scores`));
+
+    const goalsCol = collection(db, `artifacts/${APP_ID}/users/${user.uid}/saving_goals`);
+    const unsubGoals = onSnapshot(query(goalsCol, orderBy('createdAt', 'desc')), (snap) => {
+      setSavingGoals(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as SavingGoal)));
+    }, (error) => handleFirestoreError(error, OperationType.GET, `artifacts/${APP_ID}/users/${user.uid}/saving_goals`));
+
     return () => {
       unsubProfile();
       unsubBudget();
@@ -803,8 +1008,31 @@ function ExpenseTracker() {
       unsubCats();
       unsubTrans();
       unsubRequests();
+      unsubReminders();
+      unsubInsights();
+      unsubReceipts();
+      unsubScores();
+      unsubGoals();
     };
   }, [user]);
+
+  useEffect(() => {
+    if (user && transactions.length > 0) {
+      checkReminders();
+      
+      // Only calculate score and insights occasionally to save quota/writes
+      const lastScore = financialScores[0];
+      const oneDay = 24 * 60 * 60 * 1000;
+      if (!lastScore || (Date.now() - lastScore.calculatedAt > oneDay)) {
+        calculateFinancialScore();
+      }
+
+      const lastInsight = insights[0];
+      if (!lastInsight || (Date.now() - lastInsight.createdAt > oneDay * 3)) {
+        generateInsights();
+      }
+    }
+  }, [user, transactions.length]);
 
   // --- Handlers ---
   const handlePrevPeriod = () => {
@@ -1004,6 +1232,220 @@ function ExpenseTracker() {
     }
   };
 
+  const handleScanReceipt = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    setIsScanning(true);
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64Data = (reader.result as string).split(',')[1];
+        
+        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+        const response = await ai.models.generateContent({
+          model: "gemini-3-flash-preview",
+          contents: [
+            { text: "Extract store name, date (YYYY-MM-DD), and total amount from this receipt. Return as JSON." },
+            { inlineData: { data: base64Data, mimeType: file.type } }
+          ],
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                storeName: { type: Type.STRING },
+                date: { type: Type.STRING },
+                totalAmount: { type: Type.NUMBER }
+              },
+              required: ["storeName", "date", "totalAmount"]
+            }
+          }
+        });
+
+        const result = JSON.parse(response.text);
+        
+        // Create receipt record
+        await addDoc(collection(db, `artifacts/${APP_ID}/users/${user.uid}/receipts`), {
+          imageUrl: reader.result as string,
+          detectedTotal: result.totalAmount,
+          detectedStore: result.storeName,
+          createdAt: Date.now()
+        });
+
+        // Pre-fill transaction form
+        setFormData({
+          ...formData,
+          amount: result.totalAmount.toString(),
+          note: `${t.receiptFrom} ${result.storeName}`,
+          date: result.date || new Date().toISOString().split('T')[0],
+          type: 'expense'
+        });
+        setIsModalOpen(true);
+        setIsScanning(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error("Scanning failed:", error);
+      setIsScanning(false);
+    }
+  };
+
+  const handleCreateGoal = async () => {
+    if (!user || !newGoalData.goalName || !newGoalData.targetAmount) return;
+    try {
+      await addDoc(collection(db, `artifacts/${APP_ID}/users/${user.uid}/saving_goals`), {
+        goalName: newGoalData.goalName,
+        targetAmount: parseFloat(newGoalData.targetAmount),
+        currentSaved: 0,
+        deadline: newGoalData.deadline || null,
+        createdAt: Date.now()
+      });
+      setIsGoalModalOpen(false);
+      setNewGoalData({ goalName: '', targetAmount: '', deadline: '' });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.CREATE, `artifacts/${APP_ID}/users/${user.uid}/saving_goals`);
+    }
+  };
+
+  const handleAddContribution = async (goalId?: string, amountToAdd?: number) => {
+    const targetGoalId = goalId || contributionData.goalId;
+    const targetAmount = amountToAdd || parseFloat(contributionData.amount);
+    
+    if (!user || !targetGoalId || isNaN(targetAmount)) return;
+    try {
+      const goal = savingGoals.find(g => g.id === targetGoalId);
+      if (!goal) return;
+      
+      await updateDoc(doc(db, `artifacts/${APP_ID}/users/${user.uid}/saving_goals/${goal.id}`), {
+        currentSaved: goal.currentSaved + targetAmount
+      });
+      
+      setIsContributionModalOpen(false);
+      setContributionData({ goalId: '', amount: '' });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.UPDATE, `artifacts/${APP_ID}/users/${user.uid}/saving_goals/${targetGoalId}`);
+    }
+  };
+
+  const generateInsights = async () => {
+    if (!user || transactions.length < 5) return;
+    
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const recentTransactions = transactions.slice(0, 50).map(t => ({
+        amount: t.amount,
+        type: t.type,
+        category: t.category,
+        date: t.date
+      }));
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: `Analyze these transactions and provide 3 short financial insights or tips. 
+        Return as JSON array of objects with 'title' and 'description'.
+        IMPORTANT: Respond in the following language: ${profile.language === 'id' ? 'Indonesian' : profile.language === 'zh' ? 'Chinese' : profile.language === 'ja' ? 'Japanese' : 'English'}.
+        Transactions: ${JSON.stringify(recentTransactions)}`,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                title: { type: Type.STRING },
+                description: { type: Type.STRING }
+              },
+              required: ["title", "description"]
+            }
+          }
+        }
+      });
+
+      const newInsights = JSON.parse(response.text);
+      const insightsCol = collection(db, `artifacts/${APP_ID}/users/${user.uid}/insights`);
+      
+      for (const insight of newInsights) {
+        await addDoc(insightsCol, {
+          ...insight,
+          createdAt: Date.now()
+        });
+      }
+    } catch (error) {
+      console.error("Insight generation failed:", error);
+    }
+  };
+
+  const calculateFinancialScore = async () => {
+    if (!user || transactions.length === 0) return;
+
+    const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+    const totalExpense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+    
+    let score = 50; // Base score
+    
+    // Saving rate (up to 30 points)
+    if (totalIncome > 0) {
+      const savingRate = (totalIncome - totalExpense) / totalIncome;
+      score += Math.min(30, Math.max(0, savingRate * 100));
+    }
+
+    // Budget discipline (up to 20 points)
+    const budgetUsed = totalExpense / (budgetSettings.monthlyIncome || 1);
+    if (budgetUsed <= 1) score += 20;
+    else if (budgetUsed <= 1.2) score += 10;
+
+    score = Math.min(100, Math.max(0, Math.round(score)));
+
+    try {
+      await addDoc(collection(db, `artifacts/${APP_ID}/users/${user.uid}/financial_scores`), {
+        score,
+        calculatedAt: Date.now()
+      });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.CREATE, `artifacts/${APP_ID}/users/${user.uid}/financial_scores`);
+    }
+  };
+
+  const checkReminders = async () => {
+    if (!user) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const loggedToday = transactions.some(t => t.date === today);
+    
+    const remindersCol = collection(db, `artifacts/${APP_ID}/users/${user.uid}/reminders`);
+
+    if (!loggedToday) {
+      const existing = reminders.find(r => r.type === 'daily' && new Date(r.createdAt).toISOString().split('T')[0] === today);
+      if (!existing) {
+        await addDoc(remindersCol, {
+          type: 'daily',
+          message: t.dailyReminder,
+          status: 'unread',
+          createdAt: Date.now()
+        });
+      }
+    }
+
+    if (budgetSettings.monthlyIncome > 0) {
+      const monthlyExpense = transactions
+        .filter(t => t.type === 'expense' && t.date.startsWith(today.substring(0, 7)))
+        .reduce((sum, t) => sum + t.amount, 0);
+      
+      if (monthlyExpense >= budgetSettings.monthlyIncome * 0.8) {
+        const existing = reminders.find(r => r.type === 'budget' && r.message.includes('80%') && new Date(r.createdAt).toISOString().split('T')[0] === today);
+        if (!existing) {
+          await addDoc(remindersCol, {
+            type: 'budget',
+            message: `${t.budgetWarning} (Rp ${monthlyExpense.toLocaleString()}).`,
+            status: 'unread',
+            createdAt: Date.now()
+          });
+        }
+      }
+    }
+  };
+
   const isAdmin = user?.email === "muhamadnugiandri@gmail.com" && user?.emailVerified;
   const myRequest = useMemo(() => licenseRequests.find(r => r.userId === user?.uid), [licenseRequests, user]);
 
@@ -1051,6 +1493,13 @@ function ExpenseTracker() {
       else if (statsFilter === 'weekly') matchFilter = isThisWeek;
       else if (statsFilter === 'monthly') matchFilter = isThisMonth;
       else if (statsFilter === 'yearly') matchFilter = isThisYear;
+      else if (statsFilter === 'custom' && statsStartDate && statsEndDate) {
+        const start = new Date(statsStartDate);
+        start.setHours(0,0,0,0);
+        const end = new Date(statsEndDate);
+        end.setHours(23,59,59,999);
+        matchFilter = tDate >= start && tDate <= end;
+      }
 
       if (matchFilter) {
         if (t.type === 'expense') acc.filteredExpense += amt;
@@ -1226,155 +1675,430 @@ function ExpenseTracker() {
   }
 
   // --- Main Views ---
-  const renderHome = () => (
-    <div className="space-y-6 pb-32">
-      <div className="flex justify-between items-center px-6 pt-6">
-        <div>
-          <p className="text-gray-500 text-sm font-medium">{t.hello}</p>
-          <h1 className="text-2xl font-bold text-white tracking-tight">{profile.name}</h1>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={() => setIsBudgetModalOpen(true)} className="w-10 h-10 bg-[#1f2029] rounded-full flex items-center justify-center border border-white/5 active:scale-90 transition-all cursor-pointer">
-            <TrendingUp size={18} className="text-blue-400" />
-          </button>
-        </div>
-      </div>
+  const renderHome = () => {
+    const latestScore = financialScores[0]?.score || 0;
+    const scoreCategory = latestScore >= 80 ? t.excellent : latestScore >= 60 ? t.good : latestScore >= 40 ? t.fair : t.poor;
+    const scoreColor = latestScore >= 80 ? 'text-emerald-400' : latestScore >= 60 ? 'text-blue-400' : latestScore >= 40 ? 'text-orange-400' : 'text-red-400';
+    
+    const today = new Date().toISOString().split('T')[0];
+    const monthlyBudget = budgetSettings.monthlyIncome || 0;
+    const monthlyExpense = totals.monthExpense;
+    const remainingBudget = Math.max(0, monthlyBudget - monthlyExpense);
+    const totalBalance = wallets.reduce((sum, w) => sum + w.balance, 0);
 
-      {/* Smart Planning Card */}
-          <div className="px-6">
-        <div className={`rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden group transition-all ${profile.isPremium ? 'bg-gradient-to-br from-indigo-600 to-blue-700 shadow-blue-500/20' : 'bg-[#1a1b23] border border-white/5'}`}>
-          {!profile.isPremium && (
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] z-20 flex flex-col items-center justify-center p-6 text-center">
-              <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
-                <Lock size={20} className="text-white" />
-              </div>
-              <h3 className="text-white font-bold mb-2">{t.premiumExclusive}</h3>
-              <p className="text-gray-400 text-[10px] font-medium mb-6 leading-relaxed max-w-[200px]">{t.unlockPremium}</p>
+    return (
+      <div className="space-y-6 pb-32">
+        <div className="flex justify-between items-center px-6 pt-6">
+          <div>
+            <p className="text-gray-500 text-sm font-medium">{t.hello}</p>
+            <h1 className="text-2xl font-bold text-white tracking-tight">{profile.name}</h1>
+          </div>
+          <div className="flex gap-2">
+            <button 
+              onClick={() => setIsSummaryOpen(true)} 
+              className="w-10 h-10 bg-blue-600/20 rounded-full flex items-center justify-center border border-blue-500/20 active:scale-90 transition-all cursor-pointer text-blue-400"
+            >
+              <Activity size={18} />
+            </button>
+            <div className="relative">
               <button 
-                onClick={() => setIsLicenseModalOpen(true)}
-                className="bg-blue-600 text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all cursor-pointer"
+                onClick={() => setActiveTab('summary')} 
+                className="w-10 h-10 bg-[#1f2029] rounded-full flex items-center justify-center border border-white/5 active:scale-90 transition-all cursor-pointer text-gray-400"
               >
-                {t.buyLicense}
+                <Bell size={18} />
+                {reminders.filter(r => r.status === 'unread').length > 0 && (
+                  <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-[#0d0e14]"></span>
+                )}
               </button>
             </div>
-          )}
-          
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform"><TrendingUp size={120} /></div>
-          <div className="relative z-10">
-            <div className="flex justify-between items-start mb-6">
-              <p className={`text-[10px] font-black uppercase tracking-widest ${profile.isPremium ? 'text-white/60' : 'text-gray-600'}`}>{t.dailySpendingPlan}</p>
-              {profile.isPremium && (
-                <button onClick={() => setIsBudgetModalOpen(true)} className="bg-white/20 hover:bg-white/30 p-2 rounded-xl transition-all cursor-pointer"><Edit2 size={14} className="text-white" /></button>
+          </div>
+        </div>
+
+        {/* Total Balance Card */}
+        <div className="px-6">
+          <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2.5rem] p-8 shadow-2xl shadow-blue-500/20 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-10"><PieChart size={120} /></div>
+            <div className="relative z-10">
+              <p className="text-white/60 text-[10px] font-black uppercase tracking-widest mb-2">{t.totalBalance}</p>
+              <h2 className="text-4xl font-black text-white tracking-tighter">{formatIDR(totalBalance)}</h2>
+            </div>
+          </div>
+        </div>
+
+        {/* Daily Snapshot Widget */}
+        <div className="px-6">
+          <div className="bg-gradient-to-br from-[#1a1b23] to-[#14151c] rounded-[2.5rem] p-6 border border-white/5 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-5"><Zap size={100} /></div>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                <Zap size={14} className="text-yellow-500" />
+                {t.dailySnapshot}
+              </h3>
+              <span className="text-[10px] font-bold text-blue-400 bg-blue-400/10 px-2 py-1 rounded-lg">{t.today}</span>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div>
+                <p className="text-gray-500 text-[9px] font-bold uppercase tracking-widest mb-1">{t.todaySpending}</p>
+                <p className="text-white font-black text-xl">{formatIDR(totals.todayExpense)}</p>
+              </div>
+              <div>
+                <p className="text-gray-500 text-[9px] font-bold uppercase tracking-widest mb-1">{t.monthlyBudget}</p>
+                <p className="text-white font-black text-xl">{formatIDR(remainingBudget)}</p>
+              </div>
+            </div>
+
+            <div className="bg-white/5 rounded-2xl p-3 flex items-start gap-3">
+              <div className="p-2 bg-blue-500/20 rounded-xl text-blue-400"><Info size={14} /></div>
+              <p className="text-gray-400 text-[10px] leading-relaxed italic">
+                "{t.financialTip}: {t.financialTipQuote}"
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Financial Score & Scan Row */}
+        <div className="px-6 grid grid-cols-2 gap-4">
+          <div className="bg-[#1a1b23] rounded-[2rem] p-5 border border-white/5 flex flex-col items-center justify-center text-center">
+            <p className="text-gray-500 text-[9px] font-black uppercase tracking-widest mb-3">{t.financialScore}</p>
+            <div className="relative w-16 h-16 flex items-center justify-center mb-2">
+              <svg className="w-full h-full -rotate-90">
+                <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" strokeWidth="6" className="text-white/5" />
+                <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" strokeWidth="6" strokeDasharray={175} strokeDashoffset={175 - (175 * latestScore) / 100} className={scoreColor} />
+              </svg>
+              <span className={`absolute text-lg font-black ${scoreColor}`}>{latestScore}</span>
+            </div>
+            <p className={`text-[10px] font-bold uppercase ${scoreColor}`}>{scoreCategory}</p>
+          </div>
+
+          <div className="bg-[#1a1b23] rounded-[2rem] p-5 border border-white/5 flex flex-col items-center justify-center text-center relative group">
+            <input 
+              type="file" 
+              accept="image/*" 
+              onChange={handleScanReceipt} 
+              className="absolute inset-0 opacity-0 cursor-pointer z-10" 
+              disabled={isScanning}
+            />
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-3 transition-all ${isScanning ? 'bg-blue-600/20 text-blue-400 animate-spin' : 'bg-blue-600 text-white shadow-lg shadow-blue-600/20 group-hover:scale-110'}`}>
+              {isScanning ? <RefreshCw size={20} /> : <Scan size={20} />}
+            </div>
+            <p className="text-white text-[10px] font-black uppercase tracking-widest">{t.scanReceipt}</p>
+            <p className="text-gray-500 text-[8px] mt-1">{t.aiPowered}</p>
+          </div>
+        </div>
+
+        {/* Saving Goals Widget */}
+        <div className="px-6">
+          <div className="bg-[#1a1b23] rounded-[2.5rem] p-6 border border-white/5">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                <Target size={14} className="text-emerald-400" />
+                {t.savingGoals}
+              </h3>
+              <button onClick={() => setIsGoalModalOpen(true)} className="text-blue-400 text-[10px] font-black uppercase tracking-widest">{t.viewAll}</button>
+            </div>
+            
+            <div className="space-y-4">
+              {savingGoals.length === 0 ? (
+                <p className="text-gray-500 text-[10px] text-center py-4 italic">{t.noGoals}</p>
+              ) : (
+                savingGoals.slice(0, 2).map(goal => {
+                  const progress = Math.min(100, (goal.currentSaved / goal.targetAmount) * 100);
+                  return (
+                    <div key={goal.id} className="space-y-2">
+                      <div className="flex justify-between items-end">
+                        <p className="text-white font-bold text-xs">{goal.goalName}</p>
+                        <p className="text-gray-500 text-[10px] font-medium">{Math.round(progress)}%</p>
+                      </div>
+                      <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-full bg-emerald-500 rounded-full transition-all duration-1000" style={{ width: `${progress}%` }}></div>
+                      </div>
+                    </div>
+                  );
+                })
               )}
             </div>
-            <h2 className={`text-4xl font-black mb-2 tracking-tighter ${profile.isPremium ? 'text-white' : 'text-gray-700'}`}>{formatIDR(recommendations.dailyIdeal)}</h2>
-            <p className={`text-[10px] font-bold uppercase tracking-widest ${profile.isPremium ? 'text-white/60' : 'text-gray-700'}`}>{t.idealDailyBudget}</p>
+          </div>
+        </div>
+
+        {/* Spending Insights Widget */}
+        <div className="px-6">
+          <div className="bg-[#1a1b23] rounded-[2.5rem] p-6 border border-white/5">
+            <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-6 flex items-center gap-2">
+              <Lightbulb size={14} className="text-yellow-500" />
+              {t.aiInsights}
+            </h3>
+            <div className="space-y-4">
+              {insights.length === 0 ? (
+                <div className="text-center py-6">
+                  <p className="text-gray-500 text-[10px] italic mb-4">{t.analyzingSpending}</p>
+                  <button 
+                    onClick={generateInsights}
+                    className="bg-blue-600/10 text-blue-400 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-blue-400/20"
+                  >
+                    {t.generateNow}
+                  </button>
+                </div>
+              ) : (
+                insights.slice(0, 2).map(insight => (
+                  <div key={insight.id} className="bg-white/5 p-4 rounded-2xl border border-white/5">
+                    <p className="text-white font-bold text-xs mb-1">{insight.title}</p>
+                    <p className="text-gray-500 text-[10px] leading-relaxed">{insight.description}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Recent Transactions */}
+        <div className="px-6 space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest">{t.recentTransactions}</h3>
+            <button onClick={() => setActiveTab('stats')} className="text-blue-400 text-[10px] font-black uppercase tracking-widest">{t.next}</button>
+          </div>
+          <div className="space-y-3">
+            {transactions.length === 0 ? (
+              <p className="text-gray-500 text-xs text-center py-12 italic">{t.noTransactions}</p>
+            ) : (
+              transactions.slice(0, 5).map((t) => (
+                <div key={t.id} onClick={() => { setEditingTransaction(t); setFormData({ ...t, amount: t.amount.toString() }); setIsModalOpen(true); }} className="bg-[#1a1b23] border border-white/5 p-4 rounded-3xl flex items-center justify-between group active:scale-95 transition-all cursor-pointer hover:bg-[#252631]">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg ${t.type === 'income' ? 'bg-emerald-600/20 text-emerald-400' : 'bg-blue-600/20 text-blue-400'}`}>
+                      {t.type === 'income' ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
+                    </div>
+                    <div>
+                      <p className="text-white font-bold text-sm leading-tight">{t.category}</p>
+                      <p className="text-gray-500 text-[10px] font-medium">{t.wallet} • {t.note || 'No note'}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className={`font-black text-sm tracking-tight ${t.type === 'income' ? 'text-emerald-400' : 'text-white'}`}>
+                      {t.type === 'income' ? '+' : '-'}{formatIDR(t.amount)}
+                    </p>
+                    <p className="text-gray-600 text-[9px] font-black uppercase tracking-widest">
+                      {new Date(t.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderSummary = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const todayTransactions = transactions.filter(t => t.date === today);
+    const todaySpent = todayTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+    const totalBalance = wallets.reduce((sum, w) => sum + w.balance, 0);
+    const dailyBudget = recommendations.dailyIdeal;
+    const remainingDaily = Math.max(0, dailyBudget - todaySpent);
+    
+    const categoryTotals: any = {};
+    todayTransactions.filter(t => t.type === 'expense').forEach(t => {
+      categoryTotals[t.category] = (categoryTotals[t.category] || 0) + t.amount;
+    });
+    const topCategory = Object.entries(categoryTotals).sort((a: any, b: any) => b[1] - a[1])[0]?.[0] || 'None';
+
+    return (
+      <div className="p-6 pb-32 space-y-8">
+        <div className="flex items-center gap-4">
+          <button onClick={() => setIsSummaryOpen(false)} className="p-2 bg-white/5 rounded-full text-white/70"><ArrowLeft size={20} /></button>
+          <h1 className="text-2xl font-bold text-white tracking-tight">{t.dailySummary}</h1>
+        </div>
+
+        <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2.5rem] p-8 shadow-2xl shadow-blue-500/20 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-10"><PieChart size={120} /></div>
+          <div className="relative z-10">
+            <p className="text-white/60 text-[10px] font-black uppercase tracking-widest mb-2">{t.totalBalance}</p>
+            <h2 className="text-4xl font-black text-white mb-8 tracking-tighter">{formatIDR(totalBalance)}</h2>
             
-            <div className={`mt-8 pt-6 border-t flex justify-between items-center ${profile.isPremium ? 'border-white/10' : 'border-white/5'}`}>
+            <div className="grid grid-cols-2 gap-6">
               <div>
-                <p className={`text-[8px] font-black uppercase tracking-widest mb-1 ${profile.isPremium ? 'text-white/50' : 'text-gray-700'}`}>{t.monthlyGoal}</p>
-                <p className={`font-bold text-sm ${profile.isPremium ? 'text-white' : 'text-gray-700'}`}>{t.savings} {budgetSettings.savingsGoal}%</p>
+                <p className="text-white/50 text-[8px] font-black uppercase tracking-widest mb-1">{t.spentToday}</p>
+                <p className="text-white font-bold text-lg">{formatIDR(todaySpent)}</p>
               </div>
-              <div className="text-right">
-                <p className={`text-[8px] font-black uppercase tracking-widest mb-1 ${profile.isPremium ? 'text-white/50' : 'text-gray-700'}`}>{t.targetSavings}</p>
-                <p className={`font-bold text-sm ${profile.isPremium ? 'text-white' : 'text-gray-700'}`}>{formatIDR(recommendations.savingsAmount)}</p>
+              <div>
+                <p className="text-white/50 text-[8px] font-black uppercase tracking-widest mb-1">{t.dailyBudgetLeft}</p>
+                <p className="text-white font-bold text-lg">{formatIDR(remainingDaily)}</p>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="px-6 grid grid-cols-1 gap-4">
-        <div className="relative overflow-hidden bg-[#1a1b23] rounded-[2.5rem] p-8 border border-white/5">
-          <div className="flex items-center gap-2 mb-2">
-             <TrendingDown size={16} className="text-blue-400" />
-             <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest opacity-80">{t.totalExpense}</p>
-          </div>
-          <h2 className="text-4xl font-black text-white mb-6 tracking-tighter">{formatIDR(totals.monthExpense)}</h2>
-          
-          <div className="flex items-center gap-4 pt-4 border-t border-white/10">
-             <div className="flex-1">
-                <div className="flex items-center gap-1.5 mb-0.5">
-                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
-                   <p className="text-gray-500 text-[9px] font-bold uppercase tracking-wider">{t.income}</p>
-                </div>
-                <p className="text-white font-bold text-lg">{formatIDR(totals.monthIncome)}</p>
-             </div>
-             <div className="h-8 w-[1px] bg-white/10"></div>
-             <div className="flex-1">
-                <div className="flex items-center gap-1.5 mb-0.5">
-                   <div className="w-1.5 h-1.5 rounded-full bg-cyan-400"></div>
-                   <p className="text-gray-500 text-[9px] font-bold uppercase tracking-wider">{t.cashFlow}</p>
-                </div>
-                <p className="text-white font-bold text-lg">{formatIDR(totals.monthIncome - totals.monthExpense)}</p>
-             </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 px-6">
-        <div className="bg-[#1a1b23] p-5 rounded-[2rem] border border-white/5 shadow-lg relative overflow-hidden group">
-          <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">{t.today}</p>
-          <h3 className="text-xl font-black text-pink-500">{formatIDR(totals.todayExpense)}</h3>
-        </div>
-        <div className="bg-[#1a1b23] p-5 rounded-[2rem] border border-white/5 shadow-lg relative overflow-hidden group">
-          <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">{t.sevenDays}</p>
-          <h3 className="text-xl font-black text-blue-400">{formatIDR(totals.sevenDayExpense)}</h3>
-        </div>
-      </div>
-
-      <div className="px-6 space-y-4">
-        <div className="flex justify-between items-center mb-2">
-          <h4 className="text-gray-500 text-[10px] font-black uppercase tracking-widest">{t.recentTransactions}</h4>
-        </div>
-        <div className="space-y-3">
-          {transactions.length === 0 ? (
-            <div className="py-12 text-center bg-[#1a1b23] rounded-[2rem] border border-dashed border-white/5">
-              <p className="text-gray-600 text-sm italic font-medium">{t.noTransactions}</p>
-            </div>
-          ) : (
-            transactions.slice(0, 10).map(t => (
-              <div key={t.id} className="bg-[#1a1b23] p-4 rounded-3xl flex items-center gap-4 border border-white/5 active:scale-[0.98] transition-transform cursor-pointer" onClick={() => { setEditingTransaction(t); setFormData(t); setIsModalOpen(true); }}>
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${t.type === 'expense' ? 'bg-[#2a2b36] text-blue-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
-                  {t.type === 'expense' ? <TrendingDown size={20} /> : <TrendingUp size={20} />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h5 className="text-white font-bold leading-tight truncate text-sm">{t.note || t.category}</h5>
-                  <p className="text-gray-500 text-[9px] font-black uppercase mt-0.5 tracking-widest opacity-60">{t.wallet}</p>
-                </div>
-                <div className="text-right">
-                  <p className={`font-black text-sm ${t.type === 'expense' ? 'text-pink-500' : 'text-emerald-400'}`}>
-                    {t.type === 'expense' ? '-' : '+'} {formatIDR(t.amount)}
-                  </p>
-                  <p className="text-[9px] text-gray-700 mt-1 font-black uppercase tracking-tighter">
-                    {new Date(t.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
-                  </p>
+        <div className="bg-[#1a1b23] rounded-[2.5rem] p-8 border border-white/5">
+          <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-6">{t.todaysHighlights}</h3>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 bg-pink-500/20 rounded-xl flex items-center justify-center text-pink-400"><PieChart size={18} /></div>
+                <div>
+                  <p className="text-white font-bold text-sm">{t.topCategory}</p>
+                  <p className="text-gray-500 text-[10px]">{topCategory}</p>
                 </div>
               </div>
-            ))
-          )}
+              <p className="text-white font-black text-sm">{formatIDR(categoryTotals[topCategory] || 0)}</p>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center text-blue-400"><Calendar size={18} /></div>
+                <div>
+                  <p className="text-white font-bold text-sm">{t.statistics}</p>
+                  <p className="text-gray-500 text-[10px]">{todayTransactions.length} {t.items}</p>
+                </div>
+              </div>
+              <p className="text-white font-black text-sm">{t.today}</p>
+            </div>
+          </div>
         </div>
+
+        <div className="bg-emerald-500/10 rounded-3xl p-6 border border-emerald-500/20 flex items-start gap-4">
+          <div className="p-3 bg-emerald-500/20 rounded-2xl text-emerald-400"><CheckCircle2 size={24} /></div>
+          <div>
+            <p className="text-emerald-400 font-bold text-sm mb-1">You're doing great!</p>
+            <p className="text-gray-400 text-[10px] leading-relaxed">
+              You've stayed within your daily budget for 3 days in a row. Keep it up to reach your savings goal faster!
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderReminders = () => (
+    <div className="p-6 pb-32 space-y-6">
+      <div className="flex items-center gap-4">
+        <button onClick={() => setActiveTab('home')} className="p-2 bg-white/5 rounded-full text-white/70"><ArrowLeft size={20} /></button>
+        <h1 className="text-2xl font-bold text-white tracking-tight">{t.notifications}</h1>
+      </div>
+
+      <div className="space-y-4">
+        {reminders.length === 0 ? (
+          <div className="py-20 text-center">
+            <div className="w-16 h-16 bg-white/5 rounded-[2rem] flex items-center justify-center mx-auto mb-6 text-gray-600">
+              <Bell size={32} />
+            </div>
+            <p className="text-gray-500 text-sm italic">{t.allCaughtUp}</p>
+          </div>
+        ) : (
+          reminders.map(reminder => (
+            <div 
+              key={reminder.id} 
+              className={`p-5 rounded-3xl border transition-all ${reminder.status === 'unread' ? 'bg-blue-600/10 border-blue-600/20' : 'bg-[#1a1b23] border-white/5 opacity-60'}`}
+              onClick={async () => {
+                if (reminder.status === 'unread') {
+                  await updateDoc(doc(db, `artifacts/${APP_ID}/users/${user.uid}/reminders/${reminder.id}`), { status: 'read' });
+                }
+              }}
+            >
+              <div className="flex justify-between items-start mb-2">
+                <span className={`text-[8px] font-black px-2 py-1 rounded-full uppercase tracking-widest ${
+                  reminder.type === 'daily' ? 'bg-blue-500/20 text-blue-400' :
+                  reminder.type === 'budget' ? 'bg-orange-500/20 text-orange-400' :
+                  'bg-purple-500/20 text-purple-400'
+                }`}>
+                  {t[reminder.type] || reminder.type}
+                </span>
+                <span className="text-gray-600 text-[8px] font-bold">{new Date(reminder.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              </div>
+              <p className="text-white text-xs font-medium leading-relaxed">{reminder.message}</p>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
 
-  const renderAdmin = () => (
-    <div className="p-6 pb-32 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-white tracking-tight">{t.adminDashboard}</h1>
-        <div className="w-10 h-10 bg-blue-600/20 rounded-2xl flex items-center justify-center text-blue-400">
-          <ShieldCheck size={20} />
-        </div>
-      </div>
+  const renderAdmin = () => {
+    const filteredRequests = licenseRequests.filter(req => {
+      const reqDate = new Date(req.timestamp);
+      const reqDateStr = reqDate.toISOString().split('T')[0];
+      
+      const matchesStatus = adminStatusFilter === 'all' || req.status === adminStatusFilter;
+      
+      let matchesDate = true;
+      if (adminDateFilter && adminEndDateFilter) {
+        const start = new Date(adminDateFilter);
+        start.setHours(0,0,0,0);
+        const end = new Date(adminEndDateFilter);
+        end.setHours(23,59,59,999);
+        matchesDate = reqDate >= start && reqDate <= end;
+      } else if (adminDateFilter) {
+        matchesDate = reqDateStr === adminDateFilter;
+      }
+      
+      return matchesStatus && matchesDate;
+    });
 
-      <div className="bg-[#1a1b23] border border-white/5 rounded-[2.5rem] p-8">
-        <h2 className="text-sm font-black text-gray-500 uppercase tracking-widest mb-6">{t.allRequests}</h2>
-        <div className="space-y-4">
-          {licenseRequests.length === 0 ? (
-            <p className="text-gray-500 text-xs text-center py-12 italic">{t.noRequests}</p>
-          ) : (
-            licenseRequests.sort((a, b) => b.timestamp - a.timestamp).map((req) => (
-              <div key={req.id} className="bg-[#0d0e14] border border-white/5 rounded-3xl p-5 space-y-4">
+    return (
+      <div className="p-6 pb-32 space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-white tracking-tight">{t.adminDashboard}</h1>
+          <div className="w-10 h-10 bg-blue-600/20 rounded-2xl flex items-center justify-center text-blue-400">
+            <ShieldCheck size={20} />
+          </div>
+        </div>
+
+        {/* Admin Tabs */}
+        <div className="flex gap-2 mb-2 overflow-x-auto pb-2 no-scrollbar">
+          {(['pending', 'approved', 'rejected', 'all'] as const).map((status) => (
+            <button
+              key={status}
+              onClick={() => setAdminStatusFilter(status)}
+              className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border whitespace-nowrap cursor-pointer ${
+                adminStatusFilter === status 
+                  ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-600/20' 
+                  : 'bg-[#1a1b23] border-white/5 text-gray-500 hover:bg-white/10'
+              }`}
+            >
+              {t[status] || status}
+            </button>
+          ))}
+        </div>
+
+        <div className="bg-[#1a1b23] border border-white/5 rounded-[2.5rem] p-8">
+          <div className="flex flex-col space-y-4 mb-6">
+            <h2 className="text-sm font-black text-gray-500 uppercase tracking-widest">{t.allRequests}</h2>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="flex items-center gap-2 bg-[#0d0e14] px-3 py-2 rounded-xl border border-white/5">
+                <Calendar size={14} className="text-gray-500" />
+                <input 
+                  type="date" 
+                  value={adminDateFilter}
+                  onChange={(e) => setAdminDateFilter(e.target.value)}
+                  className="bg-transparent text-[10px] text-white font-bold focus:outline-none w-full"
+                />
+              </div>
+              <div className="flex items-center gap-2 bg-[#0d0e14] px-3 py-2 rounded-xl border border-white/5">
+                <Calendar size={14} className="text-gray-500" />
+                <input 
+                  type="date" 
+                  value={adminEndDateFilter}
+                  onChange={(e) => setAdminEndDateFilter(e.target.value)}
+                  className="bg-transparent text-[10px] text-white font-bold focus:outline-none w-full"
+                />
+              </div>
+            </div>
+            {(adminDateFilter || adminEndDateFilter) && (
+              <button 
+                onClick={() => { setAdminDateFilter(''); setAdminEndDateFilter(''); }} 
+                className="text-red-400 text-[10px] font-black uppercase tracking-widest self-end"
+              >
+                Clear Filter
+              </button>
+            )}
+          </div>
+
+          <div className="space-y-4">
+            {filteredRequests.length === 0 ? (
+              <p className="text-gray-500 text-xs text-center py-12 italic">{t.noRequests}</p>
+            ) : (
+              filteredRequests.sort((a, b) => b.timestamp - a.timestamp).map((req) => (
+                <div key={req.id} className="bg-[#0d0e14] border border-white/5 rounded-3xl p-5 space-y-4">
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-gray-400">
@@ -1442,12 +2166,14 @@ function ExpenseTracker() {
       </div>
     </div>
   );
+};
 
   return (
     <div className="min-h-screen bg-[#0d0e14] text-white font-sans selection:bg-blue-500/30">
       <div className="max-w-md mx-auto relative min-h-screen border-x border-white/[0.02]">
         
         {activeTab === 'home' && renderHome()}
+        {activeTab === 'summary' && renderReminders()}
         {activeTab === 'admin' && isAdmin && renderAdmin()}
         {activeTab === 'stats' && (
           <div className="p-6 pb-32">
@@ -1459,7 +2185,7 @@ function ExpenseTracker() {
             </div>
 
             <div className="flex gap-2 mb-4 overflow-x-auto pb-2 no-scrollbar">
-              {(['daily', 'weekly', 'monthly', 'yearly'] as const).map((f) => (
+              {(['daily', 'weekly', 'monthly', 'yearly', 'custom'] as const).map((f) => (
                 <button
                   key={f}
                   onClick={() => { setStatsFilter(f); setFilterDate(new Date()); }}
@@ -1469,10 +2195,33 @@ function ExpenseTracker() {
                       : 'bg-[#1a1b23] border-white/5 text-gray-500 hover:bg-white/10'
                   }`}
                 >
-                  {t[f]}
+                  {t[f] || f}
                 </button>
               ))}
             </div>
+
+            {statsFilter === 'custom' && (
+              <div className="grid grid-cols-2 gap-3 mb-6">
+                <div className="space-y-1">
+                  <label className="text-[8px] font-black text-gray-600 uppercase tracking-widest ml-4">{t.startDate}</label>
+                  <input 
+                    type="date" 
+                    value={statsStartDate}
+                    onChange={(e) => setStatsStartDate(e.target.value)}
+                    className="w-full bg-[#1a1b23] border border-white/5 rounded-2xl px-4 py-3 text-[10px] text-white font-bold focus:outline-none focus:border-blue-500/50"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[8px] font-black text-gray-600 uppercase tracking-widest ml-4">{t.endDate}</label>
+                  <input 
+                    type="date" 
+                    value={statsEndDate}
+                    onChange={(e) => setStatsEndDate(e.target.value)}
+                    className="w-full bg-[#1a1b23] border border-white/5 rounded-2xl px-4 py-3 text-[10px] text-white font-bold focus:outline-none focus:border-blue-500/50"
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="flex items-center justify-between bg-[#1a1b23] border border-white/5 rounded-2xl p-4 mb-6">
               <button onClick={handlePrevPeriod} className="w-10 h-10 flex items-center justify-center text-gray-500 hover:text-white transition-all active:scale-90 cursor-pointer">
@@ -1504,16 +2253,29 @@ function ExpenseTracker() {
                   const catTotal = transactions.filter(t => {
                     if (t.category !== cat.name || t.type !== 'expense') return false;
                     const tDate = new Date(t.date);
-                    const now = new Date();
+                    const now = filterDate;
                     const todayStr = now.toISOString().split('T')[0];
                     const currentMonth = now.getMonth();
                     const currentYear = now.getFullYear();
-                    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    
+                    const startOfWeek = new Date(now);
+                    startOfWeek.setDate(now.getDate() - now.getDay());
+                    startOfWeek.setHours(0,0,0,0);
+                    const endOfWeek = new Date(startOfWeek);
+                    endOfWeek.setDate(startOfWeek.getDate() + 6);
+                    endOfWeek.setHours(23,59,59,999);
 
                     if (statsFilter === 'daily') return t.date === todayStr;
-                    if (statsFilter === 'weekly') return tDate >= sevenDaysAgo;
+                    if (statsFilter === 'weekly') return tDate >= startOfWeek && tDate <= endOfWeek;
                     if (statsFilter === 'monthly') return tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
                     if (statsFilter === 'yearly') return tDate.getFullYear() === currentYear;
+                    if (statsFilter === 'custom' && statsStartDate && statsEndDate) {
+                      const start = new Date(statsStartDate);
+                      start.setHours(0,0,0,0);
+                      const end = new Date(statsEndDate);
+                      end.setHours(23,59,59,999);
+                      return tDate >= start && tDate <= end;
+                    }
                     return false;
                   }).reduce((sum, t) => sum + t.amount, 0);
                   
@@ -1657,34 +2419,37 @@ function ExpenseTracker() {
 
         {/* Tab Bar Navigation */}
         <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md px-6 pb-6 pt-2 z-50">
-          <nav className="relative bg-[#1a1b23]/95 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] h-20 flex items-center justify-around px-2 shadow-2xl">
-            <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all cursor-pointer ${activeTab === 'home' ? 'text-blue-400 bg-blue-500/10' : 'text-gray-500'}`}>
+          <nav className="relative bg-[#1a1b23]/95 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] h-20 flex items-center justify-between px-4 shadow-2xl">
+            <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center justify-center flex-1 h-14 rounded-2xl transition-all cursor-pointer ${activeTab === 'home' ? 'text-blue-400 bg-blue-500/10' : 'text-gray-500'}`}>
               <Home size={20} />
               <span className="text-[8px] font-black uppercase mt-1">{t.home}</span>
             </button>
-            <button onClick={() => setActiveTab('stats')} className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all cursor-pointer ${activeTab === 'stats' ? 'text-blue-400 bg-blue-500/10' : 'text-gray-500'}`}>
+            <button onClick={() => setActiveTab('stats')} className={`flex flex-col items-center justify-center flex-1 h-14 rounded-2xl transition-all cursor-pointer ${activeTab === 'stats' ? 'text-blue-400 bg-blue-500/10' : 'text-gray-500'}`}>
               <BarChart3 size={20} />
               <span className="text-[8px] font-black uppercase mt-1">{t.stats}</span>
             </button>
-            <div className="relative -top-10">
-              <button onClick={() => { setEditingTransaction(null); setIsModalOpen(true); }} className="w-16 h-16 bg-gradient-to-br from-[#8083ff] to-[#5356ff] rounded-[2rem] flex items-center justify-center shadow-[0_15px_30px_rgba(83,86,255,0.4)] active:scale-90 transition-all border-4 border-[#0d0e14] text-white cursor-pointer">
-                <Plus size={32} strokeWidth={3} />
+            
+            <div className="relative -top-8 px-2">
+              <button 
+                onClick={() => { setEditingTransaction(null); setIsModalOpen(true); }} 
+                className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-[2rem] flex items-center justify-center shadow-[0_15px_30px_rgba(37,99,235,0.4)] active:scale-90 transition-all border-4 border-[#0d0e14] text-white cursor-pointer group"
+              >
+                <Plus size={32} strokeWidth={3} className="group-hover:rotate-90 transition-transform duration-300" />
               </button>
             </div>
-            <button onClick={() => setActiveTab('wallet')} className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all cursor-pointer ${activeTab === 'wallet' ? 'text-blue-400 bg-blue-500/10' : 'text-gray-500'}`}>
+
+            <button onClick={() => setActiveTab('wallet')} className={`flex flex-col items-center justify-center flex-1 h-14 rounded-2xl transition-all cursor-pointer ${activeTab === 'wallet' ? 'text-blue-400 bg-blue-500/10' : 'text-gray-500'}`}>
               <Wallet size={20} />
               <span className="text-[8px] font-black uppercase mt-1">{t.wallet}</span>
             </button>
-            <button onClick={() => setActiveTab('me')} className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all cursor-pointer ${activeTab === 'me' ? 'text-blue-400 bg-blue-500/10' : 'text-gray-500'}`}>
-              <User size={20} />
-              <span className="text-[8px] font-black uppercase mt-1">{t.me}</span>
+            
+            <button 
+              onClick={() => setActiveTab(isAdmin ? 'admin' : 'me')} 
+              className={`flex flex-col items-center justify-center flex-1 h-14 rounded-2xl transition-all cursor-pointer ${activeTab === (isAdmin ? 'admin' : 'me') ? 'text-blue-400 bg-blue-500/10' : 'text-gray-500'}`}
+            >
+              {isAdmin ? <ShieldCheck size={20} /> : <User size={20} />}
+              <span className="text-[8px] font-black uppercase mt-1">{isAdmin ? t.admin : t.me}</span>
             </button>
-            {isAdmin && (
-              <button onClick={() => setActiveTab('admin')} className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all cursor-pointer ${activeTab === 'admin' ? 'text-blue-400 bg-blue-500/10' : 'text-gray-500'}`}>
-                <ShieldCheck size={20} />
-                <span className="text-[8px] font-black uppercase mt-1">{t.admin}</span>
-              </button>
-            )}
           </nav>
         </div>
 
@@ -1785,6 +2550,99 @@ function ExpenseTracker() {
             <button type="submit" className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black uppercase tracking-[0.2em] p-5 rounded-2xl shadow-xl text-[10px] cursor-pointer active:scale-95 transition-all">{t.saveChanges}</button>
           </form>
         </Modal>
+
+        <Modal isOpen={isGoalModalOpen} onClose={() => setIsGoalModalOpen(false)} title={t.savingGoals}>
+          <div className="space-y-6 pb-4">
+            <div className="bg-blue-600/10 p-6 rounded-3xl border border-blue-600/20">
+              <h4 className="text-white font-bold text-sm mb-4">{t.createGoal}</h4>
+              <div className="space-y-4">
+                <input 
+                  type="text" 
+                  placeholder={t.goalPlaceholder} 
+                  value={newGoalData.goalName}
+                  onChange={(e) => setNewGoalData({...newGoalData, goalName: e.target.value})}
+                  className="w-full bg-[#0d0e14] border border-white/5 rounded-2xl p-4 text-white font-bold text-xs"
+                />
+                <input 
+                  type="number" 
+                  placeholder={t.targetAmountPlaceholder} 
+                  value={newGoalData.targetAmount}
+                  onChange={(e) => setNewGoalData({...newGoalData, targetAmount: e.target.value})}
+                  className="w-full bg-[#0d0e14] border border-white/5 rounded-2xl p-4 text-white font-bold text-xs"
+                />
+                <input 
+                  type="date" 
+                  value={newGoalData.deadline}
+                  onChange={(e) => setNewGoalData({...newGoalData, deadline: e.target.value})}
+                  className="w-full bg-[#0d0e14] border border-white/5 rounded-2xl p-4 text-white font-bold text-xs"
+                />
+                <button 
+                  onClick={handleCreateGoal}
+                  className="w-full bg-blue-600 text-white font-black uppercase tracking-widest p-4 rounded-2xl text-[10px] active:scale-95 transition-all"
+                >
+                  {t.createGoal}
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="text-gray-500 text-[10px] font-black uppercase tracking-widest ml-2">{t.yourGoals}</h4>
+              {savingGoals.map(goal => {
+                const progress = Math.min(100, (goal.currentSaved / goal.targetAmount) * 100);
+                return (
+                  <div key={goal.id} className="bg-[#1a1b23] p-5 rounded-3xl border border-white/5 space-y-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="text-white font-bold text-sm">{goal.goalName}</p>
+                        <p className="text-gray-500 text-[10px]">{formatIDR(goal.currentSaved)} / {formatIDR(goal.targetAmount)}</p>
+                      </div>
+                      <span className="text-emerald-400 font-black text-xs">{Math.round(progress)}%</span>
+                    </div>
+                    <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                      <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${progress}%` }}></div>
+                    </div>
+                    <div className="flex gap-2">
+                      <input 
+                        type="number" 
+                        placeholder="Add amount" 
+                        className="flex-1 bg-[#0d0e14] border border-white/5 rounded-xl px-4 text-[10px] text-white"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            const amount = parseFloat((e.target as HTMLInputElement).value);
+                            if (!isNaN(amount)) {
+                              handleAddContribution(goal.id, amount);
+                              (e.target as HTMLInputElement).value = '';
+                            }
+                          }
+                        }}
+                      />
+                      <button 
+                        onClick={(e) => {
+                          const input = (e.currentTarget.previousSibling as HTMLInputElement);
+                          const amount = parseFloat(input.value);
+                          if (!isNaN(amount)) {
+                            handleAddContribution(goal.id, amount);
+                            input.value = '';
+                          }
+                        }}
+                        className="bg-emerald-600/20 text-emerald-400 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-emerald-500/10"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </Modal>
+
+        {/* Daily Summary Modal */}
+        {isSummaryOpen && (
+          <div className="fixed inset-0 z-[100] bg-[#0d0e14] overflow-y-auto">
+            {renderSummary()}
+          </div>
+        )}
 
         <Modal isOpen={isBudgetModalOpen} onClose={() => setIsBudgetModalOpen(false)} title={t.financialPlanning}>
           {profile.isPremium ? (

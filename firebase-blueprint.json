@@ -71,6 +71,65 @@
         "paymentProof": { "type": "string", "description": "Base64 image of payment proof." }
       },
       "required": ["userId", "status", "timestamp", "paymentProof"]
+    },
+    "Reminder": {
+      "title": "Reminder",
+      "description": "A smart notification for the user.",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["daily", "budget", "subscription"], "description": "Type of reminder." },
+        "message": { "type": "string", "description": "The reminder message." },
+        "status": { "type": "string", "enum": ["unread", "read"], "description": "Status of the reminder." },
+        "createdAt": { "type": "number", "description": "Timestamp of creation." }
+      },
+      "required": ["type", "message", "status", "createdAt"]
+    },
+    "Insight": {
+      "title": "Insight",
+      "description": "AI-generated spending insight.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Insight title." },
+        "description": { "type": "string", "description": "Detailed insight description." },
+        "createdAt": { "type": "number", "description": "Timestamp of creation." }
+      },
+      "required": ["title", "description", "createdAt"]
+    },
+    "Receipt": {
+      "title": "Receipt",
+      "description": "Scanned receipt data.",
+      "type": "object",
+      "properties": {
+        "imageUrl": { "type": "string", "description": "Base64 or URL of the receipt image." },
+        "detectedTotal": { "type": "number", "description": "Total amount extracted." },
+        "detectedStore": { "type": "string", "description": "Store name extracted." },
+        "transactionId": { "type": "string", "description": "Linked transaction ID." },
+        "createdAt": { "type": "number", "description": "Timestamp of creation." }
+      },
+      "required": ["imageUrl", "createdAt"]
+    },
+    "FinancialScore": {
+      "title": "FinancialScore",
+      "description": "User's financial health score.",
+      "type": "object",
+      "properties": {
+        "score": { "type": "number", "description": "Score from 0 to 100." },
+        "calculatedAt": { "type": "number", "description": "Timestamp of calculation." }
+      },
+      "required": ["score", "calculatedAt"]
+    },
+    "SavingGoal": {
+      "title": "SavingGoal",
+      "description": "A goal for saving money.",
+      "type": "object",
+      "properties": {
+        "goalName": { "type": "string", "description": "Name of the goal." },
+        "targetAmount": { "type": "number", "description": "Target amount to save." },
+        "currentSaved": { "type": "number", "description": "Amount currently saved." },
+        "deadline": { "type": "string", "format": "date", "description": "Deadline for the goal." },
+        "createdAt": { "type": "number", "description": "Timestamp of creation." }
+      },
+      "required": ["goalName", "targetAmount", "currentSaved", "createdAt"]
     }
   },
   "firestore": {
@@ -97,6 +156,26 @@
     "/artifacts/{appId}/users/{userId}/settings/budget": {
       "schema": "Budget",
       "description": "User's budget settings."
+    },
+    "/artifacts/{appId}/users/{userId}/reminders": {
+      "schema": "Reminder",
+      "description": "User's smart reminders."
+    },
+    "/artifacts/{appId}/users/{userId}/insights": {
+      "schema": "Insight",
+      "description": "User's AI insights."
+    },
+    "/artifacts/{appId}/users/{userId}/receipts": {
+      "schema": "Receipt",
+      "description": "User's scanned receipts."
+    },
+    "/artifacts/{appId}/users/{userId}/financial_scores": {
+      "schema": "FinancialScore",
+      "description": "User's financial health scores."
+    },
+    "/artifacts/{appId}/users/{userId}/saving_goals": {
+      "schema": "SavingGoal",
+      "description": "User's saving goals."
     }
   }
 }

@@ -43,6 +43,45 @@ service cloud.firestore {
     //   - monthlyIncome: number (required)
     //   - savingsGoal: number (required)
     //
+    // Collection: /artifacts/{appId}/users/{userId}/reminders
+    // Document ID: auto-generated
+    // Fields:
+    //   - type: string (required, 'daily', 'budget', 'subscription')
+    //   - message: string (required)
+    //   - status: string (required, 'unread', 'read')
+    //   - createdAt: number (required)
+    //
+    // Collection: /artifacts/{appId}/users/{userId}/insights
+    // Document ID: auto-generated
+    // Fields:
+    //   - title: string (required)
+    //   - description: string (required)
+    //   - createdAt: number (required)
+    //
+    // Collection: /artifacts/{appId}/users/{userId}/receipts
+    // Document ID: auto-generated
+    // Fields:
+    //   - imageUrl: string (required)
+    //   - detectedTotal: number (optional)
+    //   - detectedStore: string (optional)
+    //   - transactionId: string (optional)
+    //   - createdAt: number (required)
+    //
+    // Collection: /artifacts/{appId}/users/{userId}/financial_scores
+    // Document ID: auto-generated
+    // Fields:
+    //   - score: number (required, 0-100)
+    //   - calculatedAt: number (required)
+    //
+    // Collection: /artifacts/{appId}/users/{userId}/saving_goals
+    // Document ID: auto-generated
+    // Fields:
+    //   - goalName: string (required)
+    //   - targetAmount: number (required)
+    //   - currentSaved: number (required)
+    //   - deadline: string (optional)
+    //   - createdAt: number (required)
+    //
     // Collection: /artifacts/{appId}/license_requests_v3/{requestId}
     // Document ID: auto-generated
     // Fields:
@@ -148,6 +187,41 @@ service cloud.firestore {
              request.resource.data.savingsGoal is number;
     }
 
+    function isValidReminder() {
+      return hasRequiredFields(['type', 'message', 'status', 'createdAt']) &&
+             request.resource.data.type in ['daily', 'budget', 'subscription'] &&
+             request.resource.data.status in ['unread', 'read'] &&
+             request.resource.data.createdAt is number;
+    }
+
+    function isValidInsight() {
+      return hasRequiredFields(['title', 'description', 'createdAt']) &&
+             request.resource.data.title is string &&
+             request.resource.data.description is string &&
+             request.resource.data.createdAt is number;
+    }
+
+    function isValidReceipt() {
+      return hasRequiredFields(['imageUrl', 'createdAt']) &&
+             request.resource.data.imageUrl is string &&
+             request.resource.data.createdAt is number;
+    }
+
+    function isValidFinancialScore() {
+      return hasRequiredFields(['score', 'calculatedAt']) &&
+             request.resource.data.score is number &&
+             request.resource.data.score >= 0 && request.resource.data.score <= 100 &&
+             request.resource.data.calculatedAt is number;
+    }
+
+    function isValidSavingGoal() {
+      return hasRequiredFields(['goalName', 'targetAmount', 'currentSaved', 'createdAt']) &&
+             request.resource.data.goalName is string &&
+             request.resource.data.targetAmount is number &&
+             request.resource.data.currentSaved is number &&
+             request.resource.data.createdAt is number;
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
@@ -196,6 +270,41 @@ service cloud.firestore {
         allow read: if isOwner(userId);
         allow create: if isOwner(userId) && isValidBudget();
         allow update: if isOwner(userId) && isValidBudget();
+        allow delete: if isOwner(userId);
+      }
+
+      match /reminders/{reminderId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidReminder();
+        allow update: if isOwner(userId) && isValidReminder();
+        allow delete: if isOwner(userId);
+      }
+
+      match /insights/{insightId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidInsight();
+        allow update: if isOwner(userId) && isValidInsight();
+        allow delete: if isOwner(userId);
+      }
+
+      match /receipts/{receiptId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidReceipt();
+        allow update: if isOwner(userId) && isValidReceipt();
+        allow delete: if isOwner(userId);
+      }
+
+      match /financial_scores/{scoreId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidFinancialScore();
+        allow update: if isOwner(userId) && isValidFinancialScore();
+        allow delete: if isOwner(userId);
+      }
+
+      match /saving_goals/{goalId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidSavingGoal();
+        allow update: if isOwner(userId) && isValidSavingGoal();
         allow delete: if isOwner(userId);
       }
     }
